@@ -1,0 +1,6 @@
+import {db} from '../config/supabase.js'; import {AppError} from '../utils/errors.js';
+export async function select(table,opts={}){let q=db.from(table).select(opts.select||'*'); if(opts.filters)for(const [k,v] of Object.entries(opts.filters))q=q.eq(k,v); if(opts.order)q=q.order(opts.order.col,{ascending:opts.order.asc??false}); if(opts.limit)q=q.limit(opts.limit); if(opts.single)q=q.single(); const {data,error}=await q;if(error)throw new AppError(500,'DB_ERROR',error.message);return data}
+export async function insert(table,row){const {data,error}=await db.from(table).insert(row).select().single();if(error)throw new AppError(500,'DB_ERROR',error.message);return data}
+export async function insertMany(table,rows){const {data,error}=await db.from(table).insert(rows).select();if(error)throw new AppError(500,'DB_ERROR',error.message);return data}
+export async function update(table,filters,patch){let q=db.from(table).update(patch).select();for(const [k,v] of Object.entries(filters))q=q.eq(k,v);const {data,error}=await q;if(error)throw new AppError(500,'DB_ERROR',error.message);return data}
+export async function remove(table,filters){let q=db.from(table).delete();for(const [k,v] of Object.entries(filters))q=q.eq(k,v);const {error}=await q;if(error)throw new AppError(500,'DB_ERROR',error.message)}

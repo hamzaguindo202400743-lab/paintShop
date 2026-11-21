@@ -1,0 +1,1 @@
+import {Router} from 'express';import {asyncHandler} from '../utils/errors.js';import {handleWebhook} from '../services/webhook.service.js';const r=Router();r.post('/maya',asyncHandler(async(req,res)=>{await handleWebhook(req.body,req.headers);res.status(200).json({received:true})}));export default r;

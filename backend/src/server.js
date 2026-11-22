@@ -1,2 +1,30 @@
-import express from 'express';import cors from 'cors';import helmet from 'helmet';import rateLimit from 'express-rate-limit';import crypto from 'node:crypto';import {env} from './config/env.js';import {requestId} from './middleware/request.js';import {errorHandler} from './utils/errors.js';import auth from './routes/auth.routes.js';import products from './routes/product.routes.js';import cart from './routes/cart.routes.js';import orders from './routes/order.routes.js';import admin from './routes/admin.routes.js';import webhooks from './routes/webhook.routes.js';
-const app=express();app.use(helmet());app.use(cors({origin:env.FRONTEND_URL,credentials:false}));app.use(rateLimit({windowMs:15*60*1000,limit:300,standardHeaders:true}));app.use(requestId);app.use(express.json({limit:'1mb'}));app.get('/health',(req,res)=>res.json({ok:true,service:'paint-hardware-shop-api'}));app.use('/api/v1/auth',auth);app.use('/api/v1/products',products);app.use('/api/v1/cart',cart);app.use('/api/v1/orders',orders);app.use('/api/v1/admin',admin);app.use('/api/v1/webhooks',webhooks);app.use((req,res)=>res.status(404).json({error:{code:'NOT_FOUND',message:'Route not found',requestId:req.id}}));app.use(errorHandler);app.listen(env.PORT,()=>console.log(`API listening on ${env.PORT}`));
+import express from 'express';
+import cors from 'cors';
+import { env,frontendOrigins } from './config/env.js';
+import { HttpError,notFound,errorHandler } from './lib/errors.js';
+import authRouter from './routes/auth.js';
+import productsRouter from './routes/products.js';
+import cartRouter from './routes/cart.js';
+import ordersRouter from './routes/orders.js';
+import adminRouter from './routes/admin.js';
+import categoriesRouter from './routes/categories.js';
+import webhooksRouter from './routes/webhooks.js';
+
+export const app=express();
+app.disable('x-powered-by');
+app.use(cors({ origin(origin,cb){
+  if(!origin || frontendOrigins.includes(origin.replace(/\/$/,'')))return cb(null,true);
+  cb(new HttpError(403,'CORS_FORBIDDEN',`Frontend origin is not allowed: ${origin}`));
+},credentials:false }));
+app.use(express.json({limit:'512kb'}));
+app.get('/health',(req,res)=>res.json({ok:true,service:'paint-hardware-shop-api',paymentMode:env.PAYMENT_MODE}));
+app.get('/api/v1/store/config',(req,res)=>res.json({paymentMode:env.PAYMENT_MODE,currency:'PHP',mayaEnabled:env.PAYMENT_MODE==='maya'}));
+app.use('/api/v1/auth',authRouter);
+app.use('/api/v1/products',productsRouter);
+app.use('/api/v1/categories',categoriesRouter);
+app.use('/api/v1/cart',cartRouter);
+app.use('/api/v1/orders',ordersRouter);
+app.use('/api/v1/admin',adminRouter);
+app.use('/api/v1/webhooks',webhooksRouter);
+app.use(notFound);app.use(errorHandler);
+if(process.env.NODE_ENV!=='test')app.listen(env.PORT,()=>console.log(`API listening on ${env.PORT} (payment mode: ${env.PAYMENT_MODE})`));

@@ -1,0 +1,13 @@
+# Test Plan
+- Register a new customer: expect 201.
+- Duplicate email: expect 409.
+- Invalid login: expect 401.
+- Customer calling admin endpoint: expect 403.
+- Product list pagination/filtering: expect metadata.
+- Add more than stock: expect 409.
+- Invalid coupon: expect 422.
+- Reuse same Idempotency-Key: returns same order.
+- Maya invalid webhook signature: expect 401.
+- Duplicate Maya event ID: no second payment/order state change.
+- Illegal order transition: expect 409.
+- Customer cannot read another customer's order: 404.
